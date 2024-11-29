@@ -1,0 +1,16 @@
+zigbeeManufacturer:
+  - id: "_TZE200_fzo2pocs/TS0601"
+    deviceLabel: Zemismart Tubular Motor
+    manufacturer: _TZE200_fzo2pocs
+    model: TS0601
+    deviceProfileName: zemismart-tubular-motor
+
+# This driver can be applied to any zigbee devices with cluster EF00, but never used for pairing.
+zigbeeGeneric:
+  - id: genericTuya
+    deviceLabel: "Zemismart Tubular Motor (Not Tested)"
+    clusters:
+      server:
+        - 0xEF00 # tuya
+    deviceProfileName: zemismart-tubular-motor
+    isJoinable: false

@@ -1,0 +1,6 @@
+name: 'Zemismart Tubular Motor'
+packageKey: 'zemismart-tubular-motor'
+permissions:
+  zigbee: {}
+description: "SmartThings driver for Zemismart Tubular Motor"
+vendorSupportInformation: "https://support.smartthings.com"

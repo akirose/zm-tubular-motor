@@ -1,0 +1,53 @@
+name: zemismart-tubular-motor
+components:
+- id: main
+  capabilities:
+  - id: windowShade
+    version: 1
+  - id: windowShadeLevel
+    version: 1
+  - id: switchLevel
+    version: 1
+  - id: windowShadePreset
+    version: 1
+  categories:
+  - name: Blind
+metadata:
+  vid: 1bfe5e11-c20f-3500-9d7f-5f3227270e4e
+  mnmn: SmartThingsCommunity
+  ocfDeviceType: oic.d.blind
+preferences:
+  - preferenceId: reverse
+    description: "Set direction of shade motor by open/close app commands to be reversed. For example, if you send 'open' command from ST app, but the shade is closing, then turn on this option."
+    explicit: true
+  - name: upperLimit
+    title: "Upper limit"
+    description: "upper limit"
+    required: true
+    preferenceType: boolean
+    definition:
+      default: false
+  - name: midPosition
+    title: "Mid position"
+    description: "mid position"
+    required: true
+    preferenceType: boolean
+    definition:
+      default: false
+  - name: lowerLimit
+    title: "Lower limit"
+    description: "lower limit"
+    required: true
+    preferenceType: boolean
+    definition:
+      default: false      
+  - preferenceId: presetPosition
+    explicit: true
+  - name: advancedParams
+    title: "Advanced Parameters"
+    description: "Type advanced option parameters here.(comma separated) If not necessary, leave it blank."
+    required: true
+    preferenceType: string
+    definition:
+      stringType: text
+      default: ""
