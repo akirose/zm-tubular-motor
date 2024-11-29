@@ -75,6 +75,16 @@ local function tuya_cluster_handler(driver, device, zb_rx)
         device:set_field("running_timer", device.thread:call_with_delay(3.0, function (d)
             log.debug("motor stopped")
         end))
+
+        if position > 0 and position < 100 then
+            log.debug("Running: " + running + ", Position: " + position + ", Partially open")
+        elseif position == 0 then
+            log.debug("Running: " + running + ", Position: " + position + ", Close")
+        elseif position == 100 then
+            log.debug("Running: " + running + ", Position: " + position + ", Open")
+        else
+            log.debug("Running: " + running)
+        end
     end
 end
 
