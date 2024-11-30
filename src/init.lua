@@ -63,7 +63,6 @@ local function tuya_cluster_handler(driver, device, zb_rx)
     local dp = string.byte(rx:sub(3, 3))
     local fncmd_len = string.unpack(">I2", rx:sub(5, 6))
     local fncmd = string.unpack(">I" .. fncmd_len, rx:sub(7))
-    log.debug(string.format("dp=%d, fncmd=%d", dp, fncmd))
 
     if dp == string.byte(DP_MOTOR_POSITION) or dp == string.byte(DP_MOTOR_ARRIVED) then
         local current_position = device:get_latest_state("main", capabilities.windowShadeLevel.ID,
@@ -79,7 +78,6 @@ local function tuya_cluster_handler(driver, device, zb_rx)
             device:set_field("running_timer", nil)
         end
         device:set_field("running_timer", device.thread:call_with_delay(3.0, function(d)
-            log.debug("motor stopped")
             device:set_field("running_timer", nil)
         end))
 
@@ -140,7 +138,6 @@ end
 local function open_handler(driver, device)
     device:emit_event(capabilities.windowShade.windowShade.opening())
     local current_level = get_current_level(device)
-    log.debug(string.format("current_level: %d", current_level))
     if device.preferences.reverse == false and current_level == 100 then
         device:emit_event(capabilities.windowShade.windowShade.open())
     elseif device.preferences.reverse and current_level == 0 then
