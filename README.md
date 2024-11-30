@@ -1,4 +1,4 @@
-# Samsung Smartthings - Zemismart Tubular Motor Edge Driver
+# SmartThings - Zemismart Tubular Motor Edge Driver
 
 Tested only ZM16E Tubular Motor.
 
