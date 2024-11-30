@@ -21,33 +21,18 @@ preferences:
     description: "Set direction of shade motor by open/close app commands to be reversed. For example, if you send 'open' command from ST app, but the shade is closing, then turn on this option."
     explicit: true
   - name: upperLimit
-    title: "Upper limit"
-    description: "upper limit"
-    required: true
-    preferenceType: boolean
-    definition:
-      default: false
-  - name: midPosition
-    title: "Mid position"
-    description: "mid position"
+    title: "Set maximum open position"
+    description: "Set with blind fully open."
     required: true
     preferenceType: boolean
     definition:
       default: false
   - name: lowerLimit
-    title: "Lower limit"
-    description: "lower limit"
+    title: "Set maximum closed position"
+    description: "Set the blinds to fully closed."
     required: true
     preferenceType: boolean
     definition:
-      default: false      
+      default: false
   - preferenceId: presetPosition
     explicit: true
-  - name: advancedParams
-    title: "Advanced Parameters"
-    description: "Type advanced option parameters here.(comma separated) If not necessary, leave it blank."
-    required: true
-    preferenceType: string
-    definition:
-      stringType: text
-      default: ""

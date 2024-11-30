@@ -19,13 +19,13 @@ local DP_STATE = "\x01"
 local DP_MOTOR_POSITION = "\x02"
 local DP_MOTOR_ARRIVED = "\x03"
 local DP_MOTOR_DIRECTION = "\x05"
+local DP_MOTOR_UPPER_LIMIT = "\x67"
+local DP_MOTOR_LOWER_LIMIT = "\x69"
 
 -- motor states
 local MOTOR_STATE_OPEN = "\x00"
 local MOTOR_STATE_CLOSE = "\x02"
 local MOTOR_STATE_STOP = "\x01"
-local MOTOR_STATE_STEP_OPEN = "\x03"  -- not tested
-local MOTOR_STATE_STEP_CLOSE = "\x04" -- not tested
 
 local packet_id = 0
 
@@ -65,60 +65,112 @@ local function tuya_cluster_handler(driver, device, zb_rx)
     local fncmd = string.unpack(">I" .. fncmd_len, rx:sub(7))
     log.debug(string.format("dp=%d, fncmd=%d", dp, fncmd))
 
-    if dp == DP_MOTOR_POSITION or dp == DP_MOTOR_ARRIVED then
+    if dp == string.byte(DP_MOTOR_POSITION) or dp == string.byte(DP_MOTOR_ARRIVED) then
+        local current_position = device:get_latest_state("main", capabilities.windowShadeLevel.ID,
+            capabilities.windowShadeLevel.shadeLevel.NAME)
+        if type(current_position) ~= "number" then
+            current_position = 50
+        end
         local position = device.preferences.reverse and 100 - (fncmd & 0xff) or (fncmd & 0xff)
-        local running = dp ~= DP_MOTOR_ARRIVED
+        local running = dp ~= string.byte(DP_MOTOR_ARRIVED)
 
         if device:get_field("running_timer") ~= nil then
             device.thread:cancel_timer(device:get_field("running_timer"))
+            device:set_field("running_timer", nil)
         end
-        device:set_field("running_timer", device.thread:call_with_delay(3.0, function (d)
+        device:set_field("running_timer", device.thread:call_with_delay(3.0, function(d)
             log.debug("motor stopped")
+            device:set_field("running_timer", nil)
         end))
 
+        if running then
+            if (current_position > position) then
+                if device.preferences.reverse then
+                    device:emit_event(capabilities.windowShade.windowShade.opening())
+                else
+                    device:emit_event(capabilities.windowShade.windowShade.closing())
+                end
+            elseif current_position < position then
+                if device.preferences.reverse then
+                    device:emit_event(capabilities.windowShade.windowShade.closing())
+                else
+                    device:emit_event(capabilities.windowShade.windowShade.opening())
+                end
+            end
+        end
+
         if position > 0 and position < 100 then
-            log.debug("Running: " + running + ", Position: " + position + ", Partially open")
+            if running == false then
+                device:emit_event(capabilities.windowShade.windowShade("partially open"))
+            end
+            device:emit_event(capabilities.windowShadeLevel.shadeLevel(position))
+            log.debug(string.format("Running: %s, Position: %d, Partially open", tostring(running), position))
         elseif position == 0 then
-            log.debug("Running: " + running + ", Position: " + position + ", Close")
+            if running == false then
+                if device.preferences.reverse then
+                    device:emit_event(capabilities.windowShade.windowShade("open"))
+                else
+                    device:emit_event(capabilities.windowShade.windowShade("closed"))
+                end
+            end
+            device:emit_event(capabilities.windowShadeLevel.shadeLevel(position))
+            log.debug(string.format("Running: %s, Position: %d, Closed", tostring(running), position))
         elseif position == 100 then
-            log.debug("Running: " + running + ", Position: " + position + ", Open")
+            if running == false then
+                if device.preferences.reverse then
+                    device:emit_event(capabilities.windowShade.windowShade("closed"))
+                else
+                    device:emit_event(capabilities.windowShade.windowShade("open"))
+                end
+            end
+            device:emit_event(capabilities.windowShadeLevel.shadeLevel(position))
+            log.debug(string.format("Running: %s, Position: %d, Open", tostring(running), position))
         else
-            log.debug("Running: " + running)
+            device:emit_event(capabilities.windowShade.windowShade("unknown"))
+            log.debug(string.format("Running: %s", tostring(running)))
         end
     end
 end
 
 local function get_current_level(device)
-    return device:get_latest_state("main", capabilities.windowShadeLevel.ID,
-        capabilities.windowShadeLevel.shadeLevel.NAME)
+    return device:get_latest_state("main", capabilities.windowShadeLevel.ID, capabilities.windowShadeLevel.shadeLevel.NAME)
 end
 
 -- Device handlers
 local function open_handler(driver, device)
+    device:emit_event(capabilities.windowShade.windowShade.opening())
     local current_level = get_current_level(device)
-    if current_level == 100 then
+    log.debug(string.format("current_level: %d", current_level))
+    if device.preferences.reverse == false and current_level == 100 then
+        device:emit_event(capabilities.windowShade.windowShade.open())
+    elseif device.preferences.reverse and current_level == 0 then
         device:emit_event(capabilities.windowShade.windowShade.open())
     end
     send_tuya_command(device, DP_STATE, DP_TYPE_ENUM, MOTOR_STATE_OPEN)
 end
 
 local function close_handler(driver, device)
+    device:emit_event(capabilities.windowShade.windowShade.closing())
     local current_level = get_current_level(device)
-    if current_level == 0 then
-        device:emit_event(capabilities.windowShade.windowShade.closed())
+    if device.preferences.reverse == false and current_level == 0 then
+        device:emit_event(capabilities.windowShade.windowShade.close())
+    elseif device.preferences.reverse and current_level == 100 then
+        device:emit_event(capabilities.windowShade.windowShade.close())
     end
     send_tuya_command(device, DP_STATE, DP_TYPE_ENUM, MOTOR_STATE_CLOSE)
 end
 
 local function pause_handler(driver, device)
-    local current_state = device:get_latest_state("main", capabilities.windowShade.ID,
-        capabilities.windowShade.windowShade.NAME)
-    device:emit_event(capabilities.windowShade.windowShade(current_state))
+    local window_shade_val = device:get_latest_state("main", capabilities.windowShade.ID, capabilities.windowShade.windowShade.NAME)
+    if window_shade_val == nil then
+        window_shade_val = "unknown"
+    end
+    device:emit_event(capabilities.windowShade.windowShade(window_shade_val))
     send_tuya_command(device, DP_STATE, DP_TYPE_ENUM, MOTOR_STATE_STOP)
 end
 
 local function shade_level_handler(driver, device, command)
-    send_tuya_command(device, DP_MOTOR_POSITION, DP_TYPE_VALUE, string.pack(">I4", level_val(device, command.args.shadeLevel)))
+    send_tuya_command(device, DP_MOTOR_POSITION, DP_TYPE_VALUE, string.pack(">I4", device.preferences.reverse and 100 - (command.args.shadeLevel & 0xff) or (command.args.shadeLevel & 0xff)))
 end
 
 local function switch_level_handler(driver, device, command)
@@ -132,15 +184,24 @@ end
 
 -- Lifecycle handlers
 local function device_added(driver, device)
-    device:emit_event(capabilities.windowShade.supportedWindowShadeCommands({"open", "close", "pause"}))
+    device:emit_event(capabilities.windowShade.supportedWindowShadeCommands({ "open", "close", "pause" }))
 end
 
 local function device_init(driver, device)
-    
 end
 
 local function device_info_changed(driver, device, event, args)
-        
+    if args.old_st_store.preferences.reverse ~= device.preferences.reverse then
+        send_tuya_command(device, DP_MOTOR_DIRECTION, DP_TYPE_ENUM, device.preferences.reverse and "\x01" or "\x00")
+    end
+
+    if args.old_st_store.preferences.upperLimit ~= device.preferences.upperLimit then
+        send_tuya_command(device, DP_MOTOR_UPPER_LIMIT, DP_TYPE_BOOL, (device.preferences.upperLimit and string.pack("b", 1) or string.pack("b", 0)))
+    end
+
+    if args.old_st_store.preferences.lowerLimit ~= device.preferences.lowerLimit then
+        send_tuya_command(device, DP_MOTOR_LOWER_LIMIT, DP_TYPE_BOOL, (device.preferences.lowerLimit and string.pack("b", 1) or string.pack("b", 0)))
+    end
 end
 
 -- Driver definitions
