@@ -19,6 +19,7 @@ local DP_STATE = "\x01"
 local DP_MOTOR_POSITION = "\x02"
 local DP_MOTOR_ARRIVED = "\x03"
 local DP_MOTOR_DIRECTION = "\x05"
+local DP_MOTOR_BATTERY = "\x0D"
 local DP_MOTOR_UPPER_LIMIT = "\x67"
 local DP_MOTOR_LOWER_LIMIT = "\x69"
 
@@ -63,6 +64,7 @@ local function tuya_cluster_handler(driver, device, zb_rx)
     local dp = string.byte(rx:sub(3, 3))
     local fncmd_len = string.unpack(">I2", rx:sub(5, 6))
     local fncmd = string.unpack(">I" .. fncmd_len, rx:sub(7))
+    log.debug(string.format("dp=%d, fncmd=%d", dp, fncmd))
 
     if dp == string.byte(DP_MOTOR_POSITION) or dp == string.byte(DP_MOTOR_ARRIVED) then
         local current_position = device:get_latest_state("main", capabilities.windowShadeLevel.ID,
@@ -70,7 +72,8 @@ local function tuya_cluster_handler(driver, device, zb_rx)
         if type(current_position) ~= "number" then
             current_position = 50
         end
-        local position = device.preferences.reverse and 100 - (fncmd & 0xff) or (fncmd & 0xff)
+        -- local position = device.preferences.reverse and 100 - (fncmd & 0xff) or (fncmd & 0xff)
+        local position = (fncmd & 0xff)
         local running = dp ~= string.byte(DP_MOTOR_ARRIVED)
 
         if device:get_field("running_timer") ~= nil then
@@ -105,21 +108,13 @@ local function tuya_cluster_handler(driver, device, zb_rx)
             log.debug(string.format("Running: %s, Position: %d, Partially open", tostring(running), position))
         elseif position == 0 then
             if running == false then
-                if device.preferences.reverse then
-                    device:emit_event(capabilities.windowShade.windowShade("open"))
-                else
-                    device:emit_event(capabilities.windowShade.windowShade("closed"))
-                end
+                device:emit_event(capabilities.windowShade.windowShade("closed"))
             end
             device:emit_event(capabilities.windowShadeLevel.shadeLevel(position))
             log.debug(string.format("Running: %s, Position: %d, Closed", tostring(running), position))
         elseif position == 100 then
             if running == false then
-                if device.preferences.reverse then
-                    device:emit_event(capabilities.windowShade.windowShade("closed"))
-                else
-                    device:emit_event(capabilities.windowShade.windowShade("open"))
-                end
+                device:emit_event(capabilities.windowShade.windowShade("open"))
             end
             device:emit_event(capabilities.windowShadeLevel.shadeLevel(position))
             log.debug(string.format("Running: %s, Position: %d, Open", tostring(running), position))
@@ -127,6 +122,8 @@ local function tuya_cluster_handler(driver, device, zb_rx)
             device:emit_event(capabilities.windowShade.windowShade("unknown"))
             log.debug(string.format("Running: %s", tostring(running)))
         end
+    elseif dp == string.byte(DP_MOTOR_BATTERY) then
+        device:emit_event(capabilities.battery.battery(fncmd))
     end
 end
 
@@ -167,7 +164,7 @@ local function pause_handler(driver, device)
 end
 
 local function shade_level_handler(driver, device, command)
-    send_tuya_command(device, DP_MOTOR_POSITION, DP_TYPE_VALUE, string.pack(">I4", device.preferences.reverse and 100 - (command.args.shadeLevel & 0xff) or (command.args.shadeLevel & 0xff)))
+    send_tuya_command(device, DP_MOTOR_POSITION, DP_TYPE_VALUE, string.pack(">I4", (command.args.shadeLevel & 0xff)))
 end
 
 local function switch_level_handler(driver, device, command)
@@ -207,7 +204,8 @@ local zm_tubular_motor = {
         capabilities.windowShade,
         capabilities.windowShadePreset,
         capabilities.windowShadeLevel,
-        capabilities.switchLevel
+        capabilities.switchLevel,
+        capabilities.battery
     },
     zigbee_handlers = {
         cluster = {
