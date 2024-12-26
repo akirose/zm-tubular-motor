@@ -135,10 +135,9 @@ end
 local function open_handler(driver, device)
     device:emit_event(capabilities.windowShade.windowShade.opening())
     local current_level = get_current_level(device)
-    if device.preferences.reverse == false and current_level == 100 then
+    if current_level == 100 then
         device:emit_event(capabilities.windowShade.windowShade.open())
-    elseif device.preferences.reverse and current_level == 0 then
-        device:emit_event(capabilities.windowShade.windowShade.open())
+        return
     end
     send_tuya_command(device, DP_STATE, DP_TYPE_ENUM, MOTOR_STATE_OPEN)
 end
@@ -146,10 +145,9 @@ end
 local function close_handler(driver, device)
     device:emit_event(capabilities.windowShade.windowShade.closing())
     local current_level = get_current_level(device)
-    if device.preferences.reverse == false and current_level == 0 then
-        device:emit_event(capabilities.windowShade.windowShade.close())
-    elseif device.preferences.reverse and current_level == 100 then
-        device:emit_event(capabilities.windowShade.windowShade.close())
+    if current_level == 0 then
+        device:emit_event(capabilities.windowShade.windowShade.closed())
+        return
     end
     send_tuya_command(device, DP_STATE, DP_TYPE_ENUM, MOTOR_STATE_CLOSE)
 end
