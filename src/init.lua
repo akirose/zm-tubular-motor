@@ -192,7 +192,8 @@ local function device_info_changed(driver, device, event, args)
         if device:get_manufacturer() == "_TZE200_68nvbio9" then
             send_tuya_command(device, DP_MOTOR_BORDER, DP_TYPE_ENUM, (device.preferences.upperLimit and "\x00" or "\x02"))
         else
-            send_tuya_command(device, DP_MOTOR_UPPER_LIMIT, DP_TYPE_BOOL, (device.preferences.upperLimit and string.pack("b", 1) or string.pack("b", 0)))
+            send_tuya_command(device, (device.preferences.reverse and DP_MOTOR_LOWER_LIMIT or DP_MOTOR_UPPER_LIMIT),
+            DP_TYPE_BOOL, (device.preferences.upperLimit and string.pack("b", 1) or string.pack("b", 0)))
         end
     end
 
@@ -200,7 +201,8 @@ local function device_info_changed(driver, device, event, args)
         if device:get_manufacturer() == "_TZE200_68nvbio9" then
             send_tuya_command(device, DP_MOTOR_BORDER, DP_TYPE_ENUM, (device.preferences.lowerLimit and "\x01" or "\x03"))
         else
-            send_tuya_command(device, DP_MOTOR_LOWER_LIMIT, DP_TYPE_BOOL, (device.preferences.lowerLimit and string.pack("b", 1) or string.pack("b", 0)))
+            send_tuya_command(device, (device.preferences.reverse and DP_MOTOR_UPPER_LIMIT or DP_MOTOR_LOWER_LIMIT),
+            DP_TYPE_BOOL, (device.preferences.lowerLimit and string.pack("b", 1) or string.pack("b", 0)))
         end
     end
 end
