@@ -22,6 +22,7 @@ local DP_MOTOR_DIRECTION = "\x05"
 local DP_MOTOR_BATTERY = "\x0D"
 local DP_MOTOR_UPPER_LIMIT = "\x67"
 local DP_MOTOR_LOWER_LIMIT = "\x69"
+local DP_MOTOR_BORDER = "\x10"
 
 -- motor states
 local MOTOR_STATE_OPEN = "\x00"
@@ -188,11 +189,19 @@ local function device_info_changed(driver, device, event, args)
     end
 
     if args.old_st_store.preferences.upperLimit ~= device.preferences.upperLimit then
-        send_tuya_command(device, DP_MOTOR_UPPER_LIMIT, DP_TYPE_BOOL, (device.preferences.upperLimit and string.pack("b", 1) or string.pack("b", 0)))
+        if device:get_manufacturer() == "_TZE200_68nvbio9" then
+            send_tuya_command(device, DP_MOTOR_BORDER, DP_TYPE_ENUM, (device.preferences.upperLimit and "\x00" or "\x02"))
+        else
+            send_tuya_command(device, DP_MOTOR_UPPER_LIMIT, DP_TYPE_BOOL, (device.preferences.upperLimit and string.pack("b", 1) or string.pack("b", 0)))
+        end
     end
 
     if args.old_st_store.preferences.lowerLimit ~= device.preferences.lowerLimit then
-        send_tuya_command(device, DP_MOTOR_LOWER_LIMIT, DP_TYPE_BOOL, (device.preferences.lowerLimit and string.pack("b", 1) or string.pack("b", 0)))
+        if device:get_manufacturer() == "_TZE200_68nvbio9" then
+            send_tuya_command(device, DP_MOTOR_BORDER, DP_TYPE_ENUM, (device.preferences.lowerLimit and "\x01" or "\x03"))
+        else
+            send_tuya_command(device, DP_MOTOR_LOWER_LIMIT, DP_TYPE_BOOL, (device.preferences.lowerLimit and string.pack("b", 1) or string.pack("b", 0)))
+        end
     end
 end
 
