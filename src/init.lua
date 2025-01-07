@@ -87,17 +87,9 @@ local function tuya_cluster_handler(driver, device, zb_rx)
 
         if running then
             if (current_position > position) then
-                if device.preferences.reverse then
-                    device:emit_event(capabilities.windowShade.windowShade.opening())
-                else
-                    device:emit_event(capabilities.windowShade.windowShade.closing())
-                end
+                device:emit_event(capabilities.windowShade.windowShade.closing())
             elseif current_position < position then
-                if device.preferences.reverse then
-                    device:emit_event(capabilities.windowShade.windowShade.closing())
-                else
-                    device:emit_event(capabilities.windowShade.windowShade.opening())
-                end
+                device:emit_event(capabilities.windowShade.windowShade.opening())
             end
         end
 
